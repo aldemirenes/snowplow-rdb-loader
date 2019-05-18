@@ -77,8 +77,8 @@ object Migration {
       .map(MigrationGenerator.generateMigration(_, 4096, Some(dbSchema)))
       .traverse { file =>
         val ddl = SqlString.unsafeCoerce(file.render)
-        LoaderAction.liftA(file.warnings.traverse_(LoaderA.print)) *> LoaderA.executeUpdate(ddl).void
-      }
+        LoaderAction.liftA(file.warnings.traverse_(LoaderA.print)) *> LoaderA.executeUpdate(ddl)
+      }.map(_.void)
   }
 
 
@@ -89,7 +89,7 @@ object Migration {
         description <- getVersion(dbSchema, tableName, schemas)
         matches = schemas.schemas.last.self.schemaKey == description.version
         columns <- getColumns(dbSchema, tableName)
-        _ <- if (matches) LoaderAction.unit else update(tableName, columns, schemas)
+        _ <- if (matches) LoaderAction.unit else update(tableName, description.version, columns, schemas)
       } yield () else createTable(dbSchema, tableName, schemas)
     } yield ()
   }

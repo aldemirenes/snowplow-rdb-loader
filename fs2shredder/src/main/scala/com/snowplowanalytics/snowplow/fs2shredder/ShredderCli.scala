@@ -1,12 +1,12 @@
 package com.snowplowanalytics.snowplow.fs2shredder
 
-import java.nio.file.{ Path, Files }
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Path}
+import java.util.Base64
 
 import cats.effect.Sync
 import cats.implicits._
-
 import io.circe.jawn.parse
-
 import com.monovore.decline._
 import com.snowplowanalytics.iglu.client.resolver.Resolver
 
@@ -52,7 +52,8 @@ object ShredderCli {
     "App to prepare Snowplow enriched data to being loaded into Amazon Redshift warehouse")(shredJobConfig)
 
   def loadResolver[F[_]: Sync](path: Path): F[Resolver[F]] =
-    Sync[F].delay { Files.readString(path) }
+    Sync[F].delay { Files.readAllBytes(path) }
+      .map { Base64.getEncoder.encodeToString(_) }
       .map { str => parse(str).valueOr(throw _) }
       .flatMap { json => Resolver.parse[F](json) }
       .map { x => x.valueOr(throw _) }
