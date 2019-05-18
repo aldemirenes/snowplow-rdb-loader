@@ -69,7 +69,7 @@ lazy val fs2shredder = project.in(file("fs2shredder"))
   )
   .dependsOn(common)
 
-lazy val loader = project.in(file("snowplow-rdb-loader"))
+lazy val loader = project.in(file("loader"))
   .settings(
     name := "snowplow-rdb-loader",
     version := "0.17.0",
