@@ -91,7 +91,7 @@ object ShredJobSpec {
 
   /** Ignore empty files on output (necessary since https://github.com/snowplow/snowplow-rdb-loader/issues/142) */
   val NonEmpty = new IOFileFilter {
-    def accept(file: File): Boolean = file.length() > 1L
+    def accept(file: File): Boolean = file.length() >= 1L
     def accept(dir: File, name: String): Boolean = true
   }
 
@@ -107,7 +107,6 @@ object ShredJobSpec {
       .toList
       .map(_.getCanonicalPath)
       .filter(p => !exclusions.contains(p) && !p.contains("crc") && !p.contains("SUCCESS"))
-
   /** A Specs2 matcher to check if a directory on disk is empty or not. */
   val beEmptyDir: Matcher[File] =
     ((f: File) =>
@@ -316,7 +315,7 @@ trait ShredJobSpec extends SparkSpec {
       "--input-folder", input.toString(),
       "--output-folder", dirs.output.toString(),
       "--bad-folder", dirs.badRows.toString(),
-      "--iglu-config", igluConfigWithLocal
+      "--iglu-config", igluConfig
     )
 
     val (dedupeConfigCli, dedupeConfig) = if (crossBatchDedupe) {
