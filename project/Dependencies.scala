@@ -38,6 +38,9 @@ object Dependencies {
     val aws              = "1.11.319"
     val jSch             = "0.1.54"
 
+    // Java (fs2Shredder)
+    val nsqClient            = "1.2.0"
+
     // Scala (test only)
     val specs2           = "4.0.4"
     val scalaCheck       = "1.12.6"
@@ -85,6 +88,9 @@ object Dependencies {
 
   // Java (Shredder)
   val dynamodb          = "com.amazonaws"         % "aws-java-sdk-dynamodb"     % V.aws
+
+  // Java (fs2Shredder)
+  val nsqClient            = "com.snowplowanalytics"            %  "nsq-java-client"           % V.nsqClient
 
   // Scala (test only)
   val specs2            = "org.specs2"            %% "specs2-core"             % V.specs2         % "test"

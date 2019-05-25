@@ -9,6 +9,7 @@ import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.util.concurrent.Executors
 
 import cats.Monad
+import cats.data.ValidatedNel
 import com.snowplowanalytics.iglu.client.Resolver
 import com.snowplowanalytics.iglu.client.resolver.registries.RegistryLookup
 
@@ -31,7 +32,12 @@ object Shredder extends IOApp {
       .through(text.utf8Decode)
       .through(text.lines)
       .filter(s => !s.trim.isEmpty)
-      .map { line => Event.parse(line).valueOr(error => throw new RuntimeException(error.toList.mkString(", "))) }
+      .map { line => { println(s"Event: $line"); Event.parse(line).valueOr(error => throw new RuntimeException(error.toList.mkString(", "))) } }
+  }
+
+  def parseEvent(eventStr: String): Event = {
+    println(s"Event: $eventStr")
+    Event.parse(eventStr).valueOr(error => throw new RuntimeException(error.toList.mkString(", ")))
   }
 
   def shred[F[_]: Monad: RegistryLookup: Clock](base: Path, resolver: Resolver[F])(event: Event): F[List[(Path, String)]] = {
@@ -66,7 +72,7 @@ object Shredder extends IOApp {
 
         val process = Stream.resource(resources)
           .flatMap { case (ec, iglu) =>
-            val events = list(cli.inFolder).flatMap(readEvents(ec))
+            val events = new NsqSource[IO](cli).run().map(parseEvent)
             events.evalMap(shred[IO](cli.outFolder, iglu))
               .flatMap(rows => Stream.emits(rows))
               .evalTap { case (path, _) => create(path) }
@@ -77,6 +83,7 @@ object Shredder extends IOApp {
               }
           }
         process.compile.drain.as(ExitCode.Success)
+
 
       case Left(help) => IO.delay(println(help)) *> IO.pure(ExitCode.Error)
     }

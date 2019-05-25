@@ -13,13 +13,17 @@ import org.apache.commons.codec.binary.Base64
 /**
   * Case class representing the configuration for the shred job.
  *
-  * @param inFolder Folder where the input events are located
   * @param outFolder Output folder where the shredded events will be stored
   * @param badFolder Output folder where the malformed events will be stored
   * @param igluConfig JSON representing the Iglu configuration
   * @param jsonOnly don't try to produce TSV output
   */
-case class ShredderCli(inFolder: Path,
+case class ShredderCli(topic: String,
+                       channel: String,
+                       host: String,
+                       port: Int,
+                       lookupHost: String,
+                       lookupPort: Int,
                        outFolder: Path,
                        badFolder: Path,
                        igluConfig: Path,
@@ -28,9 +32,18 @@ case class ShredderCli(inFolder: Path,
 
 object ShredderCli {
 
-  val inputFolder = Opts.option[Path]("input-folder",
-    "Folder where the input events are located",
-    metavar = "<path>")
+  val topic = Opts.option[String]("topic",
+    "Nsq Topic")
+  val channel = Opts.option[String]("channel",
+    "Nsq Channel")
+  val host = Opts.option[String]("host",
+    "Nsq Host")
+  val port = Opts.option[Int]("port",
+    "Nsq Port")
+  val lookupHost = Opts.option[String]("lookupHost",
+    "Nsq Lookup Host")
+  val lookupPort = Opts.option[Int]("lookupPort",
+    "Nsq Lookup Port")
   val outputFolder = Opts.option[Path]("output-folder",
     "Output folder where the shredded events will be stored",
     metavar = "<path>")
@@ -43,8 +56,8 @@ object ShredderCli {
 
   val jsonOnly = Opts.flag("json-only", "Do not produce tabular output").orFalse
 
-  val shredJobConfig = (inputFolder, outputFolder, badFolder, igluConfig, jsonOnly).mapN {
-    (input, output, bad, iglu, jsonOnly) => ShredderCli(input, output, bad, iglu, jsonOnly)
+  val shredJobConfig = (topic, channel, host, port, lookupHost, lookupPort, outputFolder, badFolder, igluConfig, jsonOnly).mapN {
+    (topic, channel, host, port, lookupHost, lookupPort, output, bad, iglu, jsonOnly) => ShredderCli(topic, channel, host, port, lookupHost, lookupPort, output, bad, iglu, jsonOnly)
   }
 
 
