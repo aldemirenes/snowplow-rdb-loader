@@ -224,7 +224,7 @@ object ShredJobSpec {
          |"vendorPrefixes": [ "com.snowplowanalytics" ],
          |"connection": {
          |"http": {
-         |"uri": "http://localhost:8083/api"
+         |"uri": "http://localhost:8080/api"
          |}
          |}
          |},
@@ -315,7 +315,7 @@ trait ShredJobSpec extends SparkSpec {
       "--input-folder", input.toString(),
       "--output-folder", dirs.output.toString(),
       "--bad-folder", dirs.badRows.toString(),
-      "--iglu-config", igluConfig
+      "--iglu-config", igluConfigWithLocal
     )
 
     val (dedupeConfigCli, dedupeConfig) = if (crossBatchDedupe) {
