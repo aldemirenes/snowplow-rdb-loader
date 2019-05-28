@@ -32,6 +32,9 @@ object Dependencies {
     val eventsManifest   = "0.2.0-M4"
     val schemaDdl        = "0.10.0-M2"
 
+    // Scala (fs2shredder)
+    val pureConfig = "0.10.2"
+
     // Java (Loader)
     val postgres         = "42.0.0"
     val redshift         = "1.2.20.1043"
@@ -77,6 +80,9 @@ object Dependencies {
   val circeLiteral      = "io.circe"              %% "circe-literal"                % V.circe
   val sparkCore         = "org.apache.spark"      %% "spark-core"                   % V.spark           % "provided"
   val sparkSQL          = "org.apache.spark"      %% "spark-sql"                    % V.spark           % "provided"
+
+  // Scala (fs2shredder)
+  val pureConfig        = "com.github.pureconfig" %% "pureconfig"                   % V.pureConfig
 
   // Java (Loader)
   val postgres          = "org.postgresql"        % "postgresql"                % V.postgres

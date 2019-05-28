@@ -9,7 +9,6 @@ import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.util.concurrent.Executors
 
 import cats.Monad
-import cats.data.ValidatedNel
 import com.snowplowanalytics.iglu.client.Resolver
 import com.snowplowanalytics.iglu.client.resolver.registries.RegistryLookup
 
@@ -17,7 +16,7 @@ import scala.concurrent.ExecutionContext
 import com.snowplowanalytics.snowplow.analytics.scalasdk.Event
 import com.snowplowanalytics.snowplow.rdbloader.common.{Common, EventUtils, Shredded}
 
-object Shredder extends IOApp {
+object Loader {
 
   private val blockingExecutionContext =
     Resource.make(IO(ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))))(ec => IO(ec.shutdown()))
@@ -26,14 +25,6 @@ object Shredder extends IOApp {
     Stream
       .fromIterator[IO, Path](Files.list(path).iterator().asScala)
       .filter(p => !p.getFileName.toString.startsWith("."))
-
-  def readEvents(blockingEC: ExecutionContext)(path: Path) = {
-    io.file.readAll[IO](path, blockingEC, 4096)
-      .through(text.utf8Decode)
-      .through(text.lines)
-      .filter(s => !s.trim.isEmpty)
-      .map { line => { println(s"Event: $line"); Event.parse(line).valueOr(error => throw new RuntimeException(error.toList.mkString(", "))) } }
-  }
 
   def parseEvent(eventStr: String): Event = {
     println(s"Event: $eventStr")
@@ -62,30 +53,25 @@ object Shredder extends IOApp {
       }
     }
 
-  def run(args: List[String]): IO[ExitCode] = {
-    ShredderCli.command.parse(args) match {
-      case Right(cli) =>
-        val resources = for {
-          ec <- blockingExecutionContext
-          iglu <- Resource.liftF(ShredderCli.loadResolver[IO](cli.igluConfig))
-        } yield (ec, iglu)
+  def run(loaderConfig: Config)(implicit ce: ConcurrentEffect[IO], cs: ContextShift[IO], c: Clock[IO]): IO[ExitCode] = {
+    val resources = for {
+      ec <- blockingExecutionContext
+      iglu <- Resource.liftF(Utils.loadResolver[IO](loaderConfig.igluConfig))
+    } yield (ec, iglu)
 
-        val process = Stream.resource(resources)
-          .flatMap { case (ec, iglu) =>
-            val events = new NsqSource[IO](cli).run().map(parseEvent)
-            events.evalMap(shred[IO](cli.outFolder, iglu))
-              .flatMap(rows => Stream.emits(rows))
-              .evalTap { case (path, _) => create(path) }
-              .flatMap { case (path, row) =>
-                val sink = io.file.writeAll[IO](path, ec, Seq(StandardOpenOption.WRITE, StandardOpenOption.APPEND))
-                val input = Stream.emit(row ++ "\n").through(text.utf8Encode)
-                input.through(sink)
-              }
+    val process = Stream.resource(resources)
+      .flatMap { case (ec, iglu) =>
+        val events = new NsqSource[IO](loaderConfig.nsq).run().map(parseEvent)
+        events.evalMap(shred[IO](loaderConfig.outputFolder, iglu))
+          .flatMap(rows => Stream.emits(rows))
+          .evalTap { case (path, _) => create(path) }
+          .flatMap { case (path, row) =>
+            val sink = io.file.writeAll[IO](path, ec, Seq(StandardOpenOption.WRITE, StandardOpenOption.APPEND))
+            val input = Stream.emit(row ++ "\n").through(text.utf8Encode)
+            input.through(sink)
           }
-        process.compile.drain.as(ExitCode.Success)
-
-
-      case Left(help) => IO.delay(println(help)) *> IO.pure(ExitCode.Error)
-    }
+      }
+    process.compile.drain.as(ExitCode.Success)
   }
+
 }

@@ -8,10 +8,11 @@ import com.snowplowanalytics.client.nsq.exceptions.NSQException
 import java.nio.charset.StandardCharsets
 
 import cats.effect.{Async, ConcurrentEffect, ContextShift, IO}
+import com.snowplowanalytics.snowplow.fs2shredder.Config.NsqConfig
 import fs2.concurrent.Queue
 import fs2.{Stream, io, text}
 
-class NsqSource[F[_]](config: ShredderCli)(implicit F: ConcurrentEffect[F], cs: ContextShift[F]) {
+class NsqSource[F[_]](config: NsqConfig)(implicit F: ConcurrentEffect[F], cs: ContextShift[F]) {
 
   class NsqCallbacks(onComplete: Either[Throwable, String] => Unit) {
     val successCallback = new NSQMessageCallback {
@@ -39,7 +40,7 @@ class NsqSource[F[_]](config: ShredderCli)(implicit F: ConcurrentEffect[F], cs: 
     val nsqCallbacks = new NsqCallbacks(enqueue(q))
     // use NSQLookupd
     val lookup = new DefaultNSQLookup
-    lookup.addLookupAddress(config.lookupHost, config.lookupPort)
+    lookup.addLookupAddress(config.lookupHost.toString, config.lookupPort)
     val consumer = new NSQConsumer(
       lookup,
       config.topic,
