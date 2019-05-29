@@ -34,6 +34,7 @@ object Dependencies {
 
     // Scala (fs2shredder)
     val pureConfig = "0.10.2"
+    val doobie     = "0.6.0"
 
     // Java (Loader)
     val postgres         = "42.0.0"
@@ -83,6 +84,9 @@ object Dependencies {
 
   // Scala (fs2shredder)
   val pureConfig        = "com.github.pureconfig" %% "pureconfig"                   % V.pureConfig
+  val doobieCore        = "org.tpolecat"          %% "doobie-core"                  % V.doobie
+  val doobiePostgres    = "org.tpolecat"          %% "doobie-postgres"              % V.doobie
+  val doobieHikari      = "org.tpolecat"          %% "doobie-hikari"                % V.doobie
 
   // Java (Loader)
   val postgres          = "org.postgresql"        % "postgresql"                % V.postgres

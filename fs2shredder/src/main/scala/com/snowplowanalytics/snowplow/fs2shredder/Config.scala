@@ -19,7 +19,7 @@ object Config {
 
   implicit def hint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
-  val loaderConfigFile = Opts.option[Path]("loader-config", "Loader config file", metavar = "file")
+  val loaderConfigFile = Opts.option[Path]("config", "Loader config file", metavar = "file")
 
   val loader = Opts.subcommand("loader", "Transform and load the coming events")(loaderConfigFile.map(LoaderCommand.Run.apply))
 
@@ -50,5 +50,8 @@ object Config {
                       port: Int,
                       dbname: String,
                       username: String,
-                      password: String)
+                      password: String,
+                      driver: String,
+                      connectThreads: Option[Int],
+                      maxPoolSize: Option[Int])
 }

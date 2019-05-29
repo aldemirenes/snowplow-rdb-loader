@@ -61,8 +61,12 @@ lazy val fs2shredder = project.in(file("fs2shredder"))
       Dependencies.schemaDdl,
       Dependencies.analyticsSdk,
       "co.fs2" %% "fs2-io" % "1.0.4",
+      Dependencies.postgres,
       Dependencies.nsqClient,
       Dependencies.pureConfig,
+      Dependencies.doobieCore,
+      Dependencies.doobiePostgres,
+      Dependencies.doobieHikari,
 
       Dependencies.specs2,
       Dependencies.specs2ScalaCheck,

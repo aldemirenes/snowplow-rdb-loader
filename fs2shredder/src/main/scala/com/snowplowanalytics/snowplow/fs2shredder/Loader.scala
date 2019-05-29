@@ -53,7 +53,7 @@ object Loader {
       }
     }
 
-  def run(loaderConfig: Config)(implicit ce: ConcurrentEffect[IO], cs: ContextShift[IO], c: Clock[IO]): IO[ExitCode] = {
+  def run(loaderConfig: Config)(implicit ce: ConcurrentEffect[IO], cs: ContextShift[IO], c: Clock[IO]): Stream[IO, Unit] = {
     val resources = for {
       ec <- blockingExecutionContext
       iglu <- Resource.liftF(Utils.loadResolver[IO](loaderConfig.igluConfig))
@@ -71,7 +71,7 @@ object Loader {
             input.through(sink)
           }
       }
-    process.compile.drain.as(ExitCode.Success)
+    process
   }
 
 }
