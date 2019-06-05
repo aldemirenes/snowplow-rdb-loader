@@ -76,15 +76,16 @@ object singleton {
       if (instance == null) {
         synchronized {
           if (instance == null) {
+            println(dupStorageConfig)
             instance = dupStorageConfig match {
-              case Some(EventsManifestConfig.DynamoDb(None, "local", None, region, table)) =>
+              case Some(EventsManifestConfig.DynamoDb(_, "local", None, region, table)) =>
                 val client = AmazonDynamoDBClientBuilder
                   .standard()
                   .withEndpointConfiguration(new EndpointConfiguration("http://localhost:8000", region))
                   .build()
                 Some(new DynamoDbManifest(client, table))
-              case Some(config) => EventsManifest.initStorage(config).fold(e => throw FatalEtlError(e.toString), _.some)
-              case None => None
+                case Some(config) => EventsManifest.initStorage(config).fold(e => throw FatalEtlError(e.toString), _.some)
+                case None => None
             }
           }
         }

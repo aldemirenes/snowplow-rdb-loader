@@ -61,7 +61,7 @@ object Loader {
 
     val process = Stream.resource(resources)
       .flatMap { case (ec, iglu) =>
-        val events = new NsqSource[IO](loaderConfig.nsq).run().map(parseEvent)
+        val events = NsqSource.run[IO](loaderConfig.nsq).map(parseEvent)
         events.evalMap(shred[IO](loaderConfig.outputFolder, iglu))
           .flatMap(rows => Stream.emits(rows))
           .evalTap { case (path, _) => create(path) }

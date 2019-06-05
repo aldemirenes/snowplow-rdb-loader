@@ -12,10 +12,10 @@ import com.snowplowanalytics.snowplow.fs2shredder.Config.NsqConfig
 import fs2.concurrent.Queue
 import fs2.{Stream, io, text}
 
-class NsqSource[F[_]](config: NsqConfig)(implicit F: ConcurrentEffect[F], cs: ContextShift[F]) {
+object NsqSource {
 
-  class NsqCallbacks(onComplete: Either[Throwable, String] => Unit) {
-    val successCallback = new NSQMessageCallback {
+  private def createNsqSuccessCallback(onComplete: Either[Throwable, String] => Unit): NSQMessageCallback =
+    new NSQMessageCallback {
       override def message(msg: NSQMessage): Unit = {
         val bytes = msg.getMessage()
         val str = new String(bytes, StandardCharsets.UTF_8)
@@ -25,19 +25,20 @@ class NsqSource[F[_]](config: NsqConfig)(implicit F: ConcurrentEffect[F], cs: Co
       }
     }
 
-    val errorCallback = new NSQErrorCallback {
+  private def createNsqErrorCallback(onComplete: Either[Throwable, String] => Unit): NSQErrorCallback =
+    new NSQErrorCallback {
       override def error(e: NSQException): Unit = {
         println(s"error: $e")
         onComplete(Left(new Throwable(e)))
       }
     }
-  }
 
-  private def enqueue(q: Queue[F, Either[Throwable, String]]) =
+  private def enqueue[F[_]: ContextShift](q: Queue[F, Either[Throwable, String]])(implicit F: ConcurrentEffect[F]) =
     (e: Either[Throwable, String]) => F.runAsync(q.enqueue1(e))(_ => IO.unit).unsafeRunSync
 
-  private def startNsqSource(q: Queue[F, Either[Throwable, String]]) = {
-    val nsqCallbacks = new NsqCallbacks(enqueue(q))
+  private def startNsqSource[F[_]: ConcurrentEffect : ContextShift](config: NsqConfig, q: Queue[F, Either[Throwable, String]]) = {
+    val nsqSuccessCallback = createNsqSuccessCallback(enqueue(q))
+    val nsqErrorCallback = createNsqErrorCallback(enqueue(q))
     // use NSQLookupd
     val lookup = new DefaultNSQLookup
     lookup.addLookupAddress(config.lookupHost.toString, config.lookupPort)
@@ -45,16 +46,16 @@ class NsqSource[F[_]](config: NsqConfig)(implicit F: ConcurrentEffect[F], cs: Co
       lookup,
       config.topic,
       config.channel,
-      nsqCallbacks.successCallback,
+      nsqSuccessCallback,
       new NSQConfig(),
-      nsqCallbacks.errorCallback)
+      nsqErrorCallback)
     consumer.start()
   }
 
-  def run(): Stream[F, String] = {
+  def run[F[_]: ContextShift](config: NsqConfig)(implicit F: ConcurrentEffect[F]): Stream[F, String] = {
     for {
       q <- Stream.eval(Queue.unbounded[F,Either[Throwable,String]])
-      _ <-  Stream.eval(F.delay(startNsqSource(q)))
+      _ <-  Stream.eval(F.delay(startNsqSource(config, q)))
       event <- q.dequeue.rethrow
     } yield event
   }
